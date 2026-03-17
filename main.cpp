@@ -47,13 +47,14 @@ int main() {
 
         case 1:
             std::cout << "Matriz a ser calculada:\n";
-            for(const std::vector<double> line : matrix){
-                for(double value : line){
-                    std::cout << value << " ";
+            for(size_t i=0; i < matrix.rows(); i++){
+                for(size_t j=0; j < matrix.cols(); j++){
+                    std::cout << matrix.at(i,j) << " ";
                 }
                 nl
             }
             nl
+            io.WriteMatrix(writePath, matrix);
             break;
 
         case 2:
@@ -63,7 +64,7 @@ int main() {
                 break;
             }
             try{
-                detMatrix = matrix.determinant();
+                detMatrix = matrix.determinant(matrix, 1);
                 detWasCalculatedBefore = true;
                 std::cout << "Determinante da matriz: " << detMatrix;
                 nl
@@ -81,22 +82,24 @@ int main() {
             }
             try{
                 if(!detWasCalculatedBefore){
-                    detMatrix = matrix.determinant();
+                    detMatrix = matrix.determinant(matrix, 1);
                     detWasCalculatedBefore = true;
                 }
-                if(detMatrix == 0){
+                if(detMatrix == 0.0){
                     std::cout << "A inversa de uma matriz cujo determinante e 0 nao existe.\n";
                     break;
                 }
 
-                Matrix inverse = matrix.inverse();
+                Matrix inverse = matrix.inverse(matrix);
                 std::cout << "Matriz inversa:\n";
-                for(const std::vector<double>& line : inverse){
-                    for(double value : line){
-                        std::cout << value << " ";
+                for(size_t i=0; i < matrix.rows(); i++){
+                    for(size_t j=0; j < matrix.cols(); j++){
+                        std::cout << matrix.at(i,j) << " ";
                     }
                     nl
                 }
+                nl
+                io.WriteMatrix(writePath, inverse);
             }
             catch(const std::exception& error){
                 std::cerr << error.what();nl

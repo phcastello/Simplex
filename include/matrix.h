@@ -1,16 +1,31 @@
 #pragma once
-#include <utility>
 #include <vector>
+#include <cmath>
+#include <stdexcept>
 
-class Matrix : public std::vector<std::vector<double>>{
+class Matrix{
+private:
+    std::vector<std::vector<double>> data_;
+
 public:
-    using Base = std::vector<std::vector<double>>;
-    using Base::Base;
+    // Construtores
+    Matrix() = default;
+    Matrix(std::size_t rows, std::size_t cols, double initialValue = 0.0);
+    Matrix(const std::vector<std::vector<double>>& data);
+    Matrix(std::vector<std::vector<double>>&& data);
 
-    Matrix(const Base& v) : Base(v) {}
-    Matrix(Base&& v) : Base(std::move(v)) {}
-
+    // Metodos auxiliares
+    std::size_t rows() const;
+    std::size_t cols() const;
+    bool empty() const;
+    bool isRectangular() const;
     bool isSquare() const;
-    double determinant() const;
-    Matrix inverse() const;
+    void push_back(std::vector<double> value);
+    double& at(std::size_t i, std::size_t j);
+    const double& at(std::size_t i, std::size_t j) const;
+    
+    // Metodos de cálculo
+    // Calcula o determinante por laplace
+    double determinant(Matrix B, int signal) const;
+    Matrix inverse(Matrix B) const;
 };
