@@ -7,6 +7,10 @@ class Matrix{
 private:
     std::vector<std::vector<double>> data_;
 
+    Matrix makeMinorMatrix(std::size_t linhaRemovida, std::size_t colunaRemovida) const;
+    
+    // Não use, só existe pra recordação
+    Matrix makeMinorMatrixGAMBIARRA(std::size_t linhaRemovida, std::size_t colunaRemovida) const;
 public:
     // Construtores
     Matrix() = default;
@@ -26,6 +30,6 @@ public:
     
     // Metodos de cálculo
     // Calcula o determinante por laplace
-    double determinant(Matrix B, int signal) const;
-    Matrix inverse(Matrix B) const;
+    double determinant() const;
+    Matrix inverse() const;
 };

@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cmath>
+#include <iomanip>
+#include <chrono>
 #include "include/umbrella.h"
 
 #define nl std::cout << "\n";
@@ -7,6 +9,25 @@
 #define writePath "data/write.txt"
 // Porta de entrada do programa
 // Deve ser quem chama as funções de cálculo de matriz inversa e determinante NxN
+
+std::string formatDouble(double value, int casasDecimais = 20) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(casasDecimais) << value;
+
+    std::string s = oss.str();
+
+    if (s.find('.') != std::string::npos) {
+        while (!s.empty() && s.back() == '0') {
+            s.pop_back();
+        }
+
+        if (!s.empty() && s.back() == '.') {
+            s.pop_back();
+        }
+    }
+
+    return s;
+}
 
 int main() {
     int option = -1;
@@ -23,6 +44,7 @@ int main() {
 
     if(!matrix.isSquare()){
         std::cout << "Atencao: matriz não quadrada.\n";
+        std::cout << "Algumas funcionalidades nao funcionarao.\n";
     }
     
     bool loop = true;
@@ -64,9 +86,13 @@ int main() {
                 break;
             }
             try{
-                detMatrix = matrix.determinant(matrix, 1);
+                auto inicio = std::chrono::steady_clock::now();
+                std::cout << "Determinante da matriz: " << formatDouble(matrix.determinant());nl
+                auto fim = std::chrono::steady_clock::now();
+                auto duracao_us = std::chrono::duration_cast<std::chrono::microseconds>(fim - inicio);
+                auto duracao_s = std::chrono::duration<double>(fim - inicio);
+                std::cout << "Tempo de execucao: " << duracao_us.count() << " microsegundos ou " << duracao_s.count() << " segundos\n";
                 detWasCalculatedBefore = true;
-                std::cout << "Determinante da matriz: " << detMatrix;
                 nl
             }
             catch(const std::exception& error){
@@ -82,7 +108,7 @@ int main() {
             }
             try{
                 if(!detWasCalculatedBefore){
-                    detMatrix = matrix.determinant(matrix, 1);
+                    detMatrix = matrix.determinant();
                     detWasCalculatedBefore = true;
                 }
                 if(detMatrix == 0.0){
@@ -90,7 +116,7 @@ int main() {
                     break;
                 }
 
-                Matrix inverse = matrix.inverse(matrix);
+                Matrix inverse = matrix.inverse();
                 std::cout << "Matriz inversa:\n";
                 for(size_t i=0; i < matrix.rows(); i++){
                     for(size_t j=0; j < matrix.cols(); j++){
