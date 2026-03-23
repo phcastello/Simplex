@@ -31,5 +31,15 @@ public:
     // Metodos de cálculo
     // Calcula o determinante por laplace
     double determinant() const;
+
+    Matrix multiply(const Matrix& B) const;
+    Matrix multiply(const double scalar) const;
+
+    Matrix transpose() const;
+
+    Matrix cofactorMatrix() const;
+
+    Matrix adjugate() const;
+
     Matrix inverse() const;
 };

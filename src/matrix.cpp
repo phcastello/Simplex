@@ -140,6 +140,80 @@ double Matrix::determinant() const{
     
 }
 
+Matrix Matrix::multiply(const Matrix& B) const{
+
+    if(this->cols() != B.rows()){
+        throw std::invalid_argument("As matrizes nao sao compativeis");
+    }
+
+    Matrix result(this->rows(), B.cols());
+    for(std::size_t i = 0; i < this->rows(); i++){
+        for(std::size_t j = 0; j < B.cols(); j++){
+            std::size_t k = 0;
+            while(k < this->cols()){
+                result.at(i,j) += this->at(i,k) * B.at(k,j);
+                k++;
+            }
+        }
+    }
+
+    return result;
+}
+
+Matrix Matrix::multiply(const double scalar) const{
+
+    Matrix result(this->rows(), this->cols());
+    for(std::size_t i = 0; i < this->rows(); i++){
+        for(std::size_t j = 0; j < this->cols(); j++){
+            result.at(i,j) += this->at(i,j) * scalar;
+        }
+    }
+    
+    return result;
+}
+
+Matrix Matrix::cofactorMatrix() const{
+    Matrix result(this->rows(), this->cols());
+    if(this->rows() == 1 and this->cols() == 1){
+        result.at(0,0) = 1;
+        return result;
+    }
+    for(std::size_t i = 0; i < this->rows(); i++){
+        for(std::size_t j = 0; j < this->cols(); j++){
+            short signal = 0;
+            if((i+j) % 2 == 0) signal = 1;
+            else signal = -1;
+            result.at(i,j) = signal * this->makeMinorMatrix(i,j).determinant();
+        }
+    }
+
+    return result;
+}
+
+Matrix Matrix::transpose() const{
+    Matrix result(this->cols(), this->rows());
+    for(std::size_t i = 0; i < this->rows(); i++){
+        for(std::size_t j = 0; j < this->cols(); j++){
+            result.at(j,i) = this->at(i,j);
+        }
+    }
+    return result;
+}
+
+// adj(A) = C^T(A)
+// C(A_ij) = (-1)^i+j * M_ij
+Matrix Matrix::adjugate() const{
+    Matrix result(this->rows(), this->cols());
+    result = this->cofactorMatrix();
+    result = result.transpose();
+    return result;
+}
+
+// A^-1 = 1/det(A)*adj(A)
 Matrix Matrix::inverse() const{
-    throw std::logic_error("Matrix::inverse() not implemented yet");
+    if(!this->isSquare()) throw std::invalid_argument("A matriz precisa ser quadrada para calcular a inversa.");
+    double det = this->determinant();
+    if(det == 0.0) throw std::runtime_error("A matriz não possui inversa.");
+    Matrix adjugate = this->adjugate();
+    return adjugate.multiply(1.0/det);
 }

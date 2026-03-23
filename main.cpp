@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iomanip>
 #include <chrono>
+#include <sstream>
 #include "include/umbrella.h"
 
 #define nl std::cout << "\n";
@@ -87,7 +88,8 @@ int main() {
             }
             try{
                 auto inicio = std::chrono::steady_clock::now();
-                std::cout << "Determinante da matriz: " << formatDouble(matrix.determinant());nl
+                detMatrix = matrix.determinant();
+                std::cout << "Determinante da matriz: " << formatDouble(detMatrix);nl
                 auto fim = std::chrono::steady_clock::now();
                 auto duracao_us = std::chrono::duration_cast<std::chrono::microseconds>(fim - inicio);
                 auto duracao_s = std::chrono::duration<double>(fim - inicio);
@@ -120,7 +122,7 @@ int main() {
                 std::cout << "Matriz inversa:\n";
                 for(size_t i=0; i < matrix.rows(); i++){
                     for(size_t j=0; j < matrix.cols(); j++){
-                        std::cout << matrix.at(i,j) << " ";
+                        std::cout << inverse.at(i,j) << " ";
                     }
                     nl
                 }
