@@ -2,6 +2,8 @@
 
 #pragma once
 #include "aleatorizadorMatriz.h"
-#include "matrix_io.h"
-#include "matrix_parser.h"
+#include "problem_parser.h"
+#include "problem.h"
+#include "problem_io.h"
 #include "matrix.h"
+#include "matrix_io.h"

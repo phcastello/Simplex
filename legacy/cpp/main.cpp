@@ -34,20 +34,19 @@ int main() {
     int option = -1;
     MatrixIO io;
     Matrix matrix;
-    
+
     try{
         matrix = io.ReadMatrix(readPath);
     }
     catch(const std::exception& error){
-        std::cerr << error.what();nl
-        return 1;
+        std::cerr << "Aviso: " << error.what();
     }
 
     if(!matrix.isSquare()){
         std::cout << "Atencao: matriz não quadrada.\n";
         std::cout << "Algumas funcionalidades nao funcionarao.\n";
     }
-    
+
     bool loop = true;
     double detMatrix = 0.0;
     bool detWasCalculatedBefore = false;
@@ -59,6 +58,7 @@ int main() {
         std::cout << "1 - Imprimir matriz\n";
         std::cout << "2 - Determinante NxN\n";
         std::cout << "3 - Inversa NxN\n";
+        std::cout << "4 - Normalizar problema\n";
         std::cout << "Opcao: ";
         std::cin >> option;nl
 
@@ -101,7 +101,7 @@ int main() {
                 std::cerr << error.what();nl
             }
             break;
-        
+
         case 3:
             std::cout << "Calculo da Inversa da matriz apresentada no arquivo de leitura:\n";
             if(!matrix.isSquare()){
@@ -134,11 +134,31 @@ int main() {
             }
             break;
 
+        case 4:
+            std::cout << "Normalizacao de problema:\n";
+            try {
+                ProblemIO pio;
+                Problem prob = pio.ReadProblem(readPath);
+
+                for (const auto& w : prob.warnings())
+                    std::cerr << "Aviso: " << w << "\n";
+
+                Problem normal = prob.makeNormalProblem();
+                std::string result = normal.toString();
+                std::cout << result;
+                nl
+                pio.WriteProblem(writePath, normal);
+                std::cout << "Resultado gravado em " << writePath << "\n";
+            }
+            catch(const std::exception& error){
+                std::cerr << "Erro: " << error.what() << "\n";
+            }
+            break;
+
         default:
             std::cout << "Opcao invalida.\n";
             break;
         }
     }while(loop);
-
     return 0;
 }

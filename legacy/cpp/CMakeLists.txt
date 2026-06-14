@@ -7,8 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(simplex_lib
     src/aleatorizadorMatriz.cpp
     src/matrix.cpp
-    src/matrix_parser.cpp
     src/matrix_io.cpp
+    src/matrix_parser.cpp
+    src/problem.cpp
+    src/problem_parser.cpp
+    src/problem_io.cpp
 )
 
 target_include_directories(simplex_lib PUBLIC
