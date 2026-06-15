@@ -1,0 +1,43 @@
+Exemplo 1 - Maximização com solução ótima
+Resultado esperado: x_1 = 2, x_2 = 2, z = 10.
+
+max z = 3x_1 + 2x_2
+    x_1 + x_2 <= 4
+    x_1 <= 2
+    x_2 <= 3
+
+
+Exemplo 2 - Maximização simples
+Resultado esperado: x_1 = 3, x_2 = 1.5, z = 21.
+
+max z = 5x_1 + 4x_2
+    6x_1 + 4x_2 <= 24
+    x_1 + 2x_2 <= 6
+
+
+Exemplo 3 - Minimização já ótima na base inicial
+Resultado esperado: x_1 = 0, x_2 = 0, z = 0.
+
+min z = 3x_1 + 2x_2
+    x_1 + x_2 <= 4
+    x_1 <= 2
+    x_2 <= 3
+
+
+Exemplo 4 - Problema ilimitado
+Resultado esperado: o problema é ilimitado.
+
+max z = x_1
+    -x_1 <= 1
+
+
+Exemplo 5 - Base inicial não factível para o simplex primal atual
+Resultado esperado: a base inicial não é factível.
+
+min z = x_1
+    x_1 >= 1
+
+
+Observação:
+O parser do programa espera apenas um problema por vez, sem títulos ou comentários.
+Para testar um exemplo, copie somente as linhas do problema para data/read.txt.
