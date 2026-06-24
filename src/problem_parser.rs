@@ -4,7 +4,9 @@ use std::fmt::{self, Display};
 
 use regex::Regex;
 
-use crate::problem::{Constraint, EPSILON, Problem, Relation, Sense, Term, VariableKind};
+use crate::problem::{
+    Constraint, EPSILON, Problem, Relation, Sense, Term, VariableBound, VariableKind,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParseError {
@@ -46,6 +48,31 @@ fn relation_from_symbol(symbol: &str) -> Relation {
         "=" => Relation::Equal,
         _ => unreachable!(),
     }
+}
+
+fn bound_from_relation(relation: Relation) -> VariableBound {
+    match relation {
+        Relation::GreaterOrEqual => VariableBound::NonNegative,
+        Relation::LessOrEqual => VariableBound::NonPositive,
+        Relation::Equal => unreachable!(),
+    }
+}
+
+fn combine_bounds(current: VariableBound, new_bound: VariableBound) -> VariableBound {
+    if current == new_bound {
+        return current;
+    }
+
+    VariableBound::FixedZero
+}
+
+fn normalize_parser_input(input: &str) -> String {
+    // Parte de identificação e substituição dos caracteres que o parser entende.
+    // Depois desta etapa, os regex precisam lidar apenas com sinais ASCII simples.
+    input
+        .replace(['−', '–', '—'], "-")
+        .replace('≤', "<=")
+        .replace('≥', ">=")
 }
 
 fn consolidate_terms(terms: Vec<Term>) -> Vec<Term> {
@@ -151,6 +178,8 @@ fn parse_relation_line(text: &str, line: usize) -> Result<(&str, &str, f64), Par
 }
 
 pub fn parse_problem(input: &str) -> Result<Problem, ParseError> {
+    let normalized_input = normalize_parser_input(input);
+
     // Pega o objetivo e o sentido da otimização da primeira.
     // expressão: começa com "max" ou "min" (case-insensitive), seguido de "z =",
     // seguido de uma expressão linear, e nada mais depois.
@@ -172,7 +201,7 @@ pub fn parse_problem(input: &str) -> Result<Problem, ParseError> {
     let mut warnings = Vec::new();
     let mut in_bounds = false;
 
-    for (index, raw_line) in input.lines().enumerate() {
+    for (index, raw_line) in normalized_input.lines().enumerate() {
         let line_number = index + 1;
         let text = raw_line.trim();
         if text.is_empty() {
@@ -221,11 +250,22 @@ pub fn parse_problem(input: &str) -> Result<Problem, ParseError> {
             }
             for captures in bound_variable_regex.captures_iter(lhs) {
                 let variable = parse_variable_index(&captures[1], line_number)?;
-                if variable_bounds.insert(variable, relation).is_some() {
-                    return Err(ParseError::at(
-                        line_number,
-                        format!("a variável x_{variable} aparece duas vezes nos limites"),
-                    ));
+                let new_bound = bound_from_relation(relation);
+
+                match variable_bounds.get(&variable).copied() {
+                    Some(current_bound) => {
+                        let combined_bound = combine_bounds(current_bound, new_bound);
+                        variable_bounds.insert(variable, combined_bound);
+
+                        if current_bound == new_bound {
+                            warnings.push(format!(
+                                "Limite repetido para x_{variable}; mantendo apenas uma ocorrência."
+                            ));
+                        }
+                    }
+                    None => {
+                        variable_bounds.insert(variable, new_bound);
+                    }
                 }
             }
         } else {
@@ -253,7 +293,7 @@ pub fn parse_problem(input: &str) -> Result<Problem, ParseError> {
 
     if variable_bounds.is_empty() {
         for variable in &used_variables {
-            variable_bounds.insert(*variable, Relation::GreaterOrEqual);
+            variable_bounds.insert(*variable, VariableBound::NonNegative);
         }
         warnings.push(
             "Nenhum limite declarado; assumindo x_i >= 0 para todas as variáveis originais."
@@ -294,7 +334,7 @@ pub fn parse_problem(input: &str) -> Result<Problem, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::problem::{Relation, Sense};
+    use crate::problem::{Relation, Sense, VariableBound};
 
     use super::parse_problem;
 
@@ -320,8 +360,35 @@ mod tests {
     }
 
     #[test]
-    fn rejects_duplicate_and_partial_bounds() {
-        assert!(parse_problem("max z = x_1\nx_1 <= 0\nx_1 <= 0\n").is_err());
+    fn normalizes_unicode_symbols_before_parsing() {
+        let problem = parse_problem(
+            "max z = x_1 + x_2\n\
+             2x_1 + x_2 ≤ 18\n\
+             -x_1 + 2x_2 <= 4\n\
+             3x_1 −6x_2 ≥ -12\n",
+        )
+        .unwrap();
+
+        assert_eq!(problem.constraints[0].relation, Relation::LessOrEqual);
+        assert_eq!(problem.constraints[2].relation, Relation::GreaterOrEqual);
+        assert_eq!(problem.constraints[2].terms[1].coefficient, -6.0);
+    }
+
+    #[test]
+    fn combines_repeated_zero_bounds() {
+        let repeated = parse_problem("max z = x_1\nx_1 <= 0\nx_1 <= 0\n").unwrap();
+        assert_eq!(
+            repeated.variable_bounds.get(&1),
+            Some(&VariableBound::NonPositive)
+        );
+        assert_eq!(repeated.warnings.len(), 1);
+
+        let fixed_zero = parse_problem("max z = x_1\nx_1 <= 0\nx_1 >= 0\n").unwrap();
+        assert_eq!(
+            fixed_zero.variable_bounds.get(&1),
+            Some(&VariableBound::FixedZero)
+        );
+
         assert!(parse_problem("max z = x_1 + x_2\nx_1 <= 0\n").is_err());
     }
 
@@ -346,11 +413,11 @@ mod tests {
 
         assert_eq!(
             problem.variable_bounds.get(&1),
-            Some(&Relation::GreaterOrEqual)
+            Some(&VariableBound::NonNegative)
         );
         assert_eq!(
             problem.variable_bounds.get(&2),
-            Some(&Relation::GreaterOrEqual)
+            Some(&VariableBound::NonNegative)
         );
         assert_eq!(problem.warnings.len(), 1);
         assert!(problem.warnings[0].contains("x_i >= 0"));

@@ -17,10 +17,18 @@ pub enum Relation {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VariableBound {
+    NonNegative,
+    NonPositive,
+    FixedZero,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VariableKind {
     Original,
     Slack,
     Excess,
+    Artificial,
 }
 
 impl Relation {
@@ -29,6 +37,16 @@ impl Relation {
             Self::LessOrEqual => "<=",
             Self::GreaterOrEqual => ">=",
             Self::Equal => "=",
+        }
+    }
+}
+
+impl VariableBound {
+    pub fn relation(self) -> Option<Relation> {
+        match self {
+            Self::NonNegative => Some(Relation::GreaterOrEqual),
+            Self::NonPositive => Some(Relation::LessOrEqual),
+            Self::FixedZero => None,
         }
     }
 }
@@ -52,7 +70,7 @@ pub struct Problem {
     pub original_sense: Sense,
     pub objective: Vec<Term>,
     pub constraints: Vec<Constraint>,
-    pub variable_bounds: BTreeMap<usize, Relation>,
+    pub variable_bounds: BTreeMap<usize, VariableBound>,
     pub variable_kinds: BTreeMap<usize, VariableKind>,
     pub warnings: Vec<String>,
 }
@@ -118,7 +136,13 @@ impl Display for Problem {
             let variables: Vec<_> = self
                 .variable_bounds
                 .iter()
-                .filter_map(|(variable, bound)| (*bound == relation).then_some(*variable))
+                .filter_map(|(variable, bound)| {
+                    if *bound == VariableBound::FixedZero || bound.relation() == Some(relation) {
+                        Some(*variable)
+                    } else {
+                        None
+                    }
+                })
                 .collect();
             if !variables.is_empty() {
                 output.write_str("    ")?;

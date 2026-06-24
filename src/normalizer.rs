@@ -1,7 +1,9 @@
 use std::error::Error;
 use std::fmt::{self, Display};
 
-use crate::problem::{Constraint, EPSILON, Problem, Relation, Sense, Term, VariableKind};
+use crate::problem::{
+    Constraint, EPSILON, Problem, Relation, Sense, Term, VariableBound, VariableKind,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NormalizeError {
@@ -13,7 +15,7 @@ impl Display for NormalizeError {
         match self {
             Self::NonPositiveVariable { variable } => write!(
                 formatter,
-                "a normalização atual suporta apenas variáveis não negativas: x_{variable} >= 0"
+                "a normalização atual ainda não suporta variável não positiva isolada: use x_{variable} = -x'_{variable}, com x'_{variable} >= 0"
             ),
         }
     }
@@ -45,9 +47,21 @@ fn normalize_rhs(constraint: &Constraint) -> Constraint {
     normalized
 }
 
+fn remove_fixed_zero_terms(terms: &mut Vec<Term>, problem: &Problem) {
+    let mut kept_terms = Vec::new();
+
+    for term in terms.iter() {
+        if problem.variable_bounds.get(&term.variable) != Some(&VariableBound::FixedZero) {
+            kept_terms.push(term.clone());
+        }
+    }
+
+    *terms = kept_terms;
+}
+
 pub fn normalize(problem: &Problem) -> Result<Problem, NormalizeError> {
-    for (variable, relation) in &problem.variable_bounds {
-        if *relation == Relation::LessOrEqual {
+    for (variable, bound) in &problem.variable_bounds {
+        if *bound == VariableBound::NonPositive {
             return Err(NormalizeError::NonPositiveVariable {
                 variable: *variable,
             });
@@ -63,6 +77,7 @@ pub fn normalize(problem: &Problem) -> Result<Problem, NormalizeError> {
             term.coefficient *= -1.0;
         }
     }
+    remove_fixed_zero_terms(&mut normalized.objective, problem);
 
     let mut highest_variable = problem.variable_bounds.keys().copied().max().unwrap_or(0);
     for term in &problem.objective {
@@ -76,6 +91,7 @@ pub fn normalize(problem: &Problem) -> Result<Problem, NormalizeError> {
 
     for constraint in &problem.constraints {
         let mut normalized_constraint = normalize_rhs(constraint);
+        remove_fixed_zero_terms(&mut normalized_constraint.terms, problem);
 
         if normalized_constraint.relation != Relation::Equal {
             highest_variable += 1;
@@ -95,7 +111,7 @@ pub fn normalize(problem: &Problem) -> Result<Problem, NormalizeError> {
             });
             normalized
                 .variable_bounds
-                .insert(highest_variable, Relation::GreaterOrEqual);
+                .insert(highest_variable, VariableBound::NonNegative);
             normalized
                 .variable_kinds
                 .insert(highest_variable, variable_kind);
@@ -110,7 +126,7 @@ pub fn normalize(problem: &Problem) -> Result<Problem, NormalizeError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::problem::{Relation, Sense, Term, VariableKind};
+    use crate::problem::{Relation, Sense, Term, VariableBound, VariableKind};
     use crate::problem_parser::parse_problem;
 
     use super::{NormalizeError, normalize};
@@ -199,11 +215,11 @@ mod tests {
         assert_eq!(coefficient(&normalized.constraints[1].terms, 4), Some(-1.0));
         assert_eq!(
             normalized.variable_bounds.get(&3),
-            Some(&Relation::GreaterOrEqual)
+            Some(&VariableBound::NonNegative)
         );
         assert_eq!(
             normalized.variable_bounds.get(&4),
-            Some(&Relation::GreaterOrEqual)
+            Some(&VariableBound::NonNegative)
         );
         assert_eq!(
             normalized.variable_kinds.get(&3),
@@ -228,6 +244,30 @@ mod tests {
         assert_eq!(
             normalize(&problem),
             Err(NormalizeError::NonPositiveVariable { variable: 1 })
+        );
+    }
+
+    #[test]
+    fn removes_fixed_zero_variables_from_objective_and_constraints() {
+        let problem = parse_problem(
+            "max z = 3x_1 + 13x_3\n\
+             -3x_1 + 7x_3 <= 8\n\
+             x_1 <= 2\n\
+             x_3 <= 0\n\
+             x_1, x_3 >= 0\n",
+        )
+        .unwrap();
+        let normalized = normalize(&problem).unwrap();
+
+        assert_eq!(
+            normalized.variable_bounds.get(&3),
+            Some(&VariableBound::FixedZero)
+        );
+        assert_eq!(coefficient(&normalized.objective, 3), None);
+        assert_eq!(coefficient(&normalized.constraints[0].terms, 3), None);
+        assert_eq!(
+            normalized.variable_kinds.get(&3),
+            Some(&VariableKind::Original)
         );
     }
 

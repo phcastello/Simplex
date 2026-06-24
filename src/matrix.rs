@@ -14,6 +14,8 @@ pub enum MatrixError {
     NotSquare,
     IncompatibleDimensions,
     Singular,
+    InternalPhaseOneUnbounded,
+    ArtificialRemovalInconsistent,
 }
 
 impl Display for MatrixError {
@@ -23,6 +25,12 @@ impl Display for MatrixError {
             Self::NotSquare => "a matriz precisa ser quadrada",
             Self::IncompatibleDimensions => "as matrizes não possuem dimensões compatíveis",
             Self::Singular => "a matriz não possui inversa",
+            Self::InternalPhaseOneUnbounded => {
+                "erro interno: a Fase I foi classificada como ilimitada"
+            }
+            Self::ArtificialRemovalInconsistent => {
+                "erro interno: artificial básica positiva com objetivo artificial zero"
+            }
         })
     }
 }
